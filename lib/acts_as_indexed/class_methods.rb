@@ -99,7 +99,6 @@ module ActsAsIndexed
     # no_query_cache:: Turns off the query cache when set to true. Useful for testing.
 
     def search_index(query, find_options={}, options={})
-
       # Clear the query cache off  if the key is set.
       @query_cache = {}  if options[:no_query_cache]
 
@@ -134,10 +133,10 @@ module ActsAsIndexed
 
       return part_query if options[:ids_only]
 
-      with_scope :find => find_options do
+      offset(find_options[:offset]).limit(find_options[:limit]).scoping do
         # Doing the find like this eliminates the possibility of errors occuring
         # on either missing records (out-of-sync) or an empty results array.
-        records = find(:all, :conditions => [ "#{table_name}.#{primary_key} IN (?)", part_query])
+        records = where("#{table_name}.#{primary_key} IN (?)", part_query)
 
         if find_options.include?(:order)
          records # Just return the records without ranking them.
@@ -162,7 +161,7 @@ module ActsAsIndexed
       return if aai_config.index_file.directory?
 
       index = new_index
-      find_in_batches({ :batch_size => 500 }) do |records|
+      find_in_batches(:batch_size => 500) do |records|
         index.add_records(records)
       end
     end
